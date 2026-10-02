@@ -1,0 +1,8 @@
+[
+  { "id": "communities", "name": "Communities" },
+  { "id": "creator-platforms", "name": "Creator Platforms" },
+  { "id": "live", "name": "Live Streaming" },
+  { "id": "dating", "name": "Dating" },
+  { "id": "education", "name": "Education" },
+  { "id": "tools", "name": "Tools" }
+]

@@ -1,0 +1,10 @@
+[
+  { "id": "community", "name": "Community" },
+  { "id": "forum", "name": "Forum" },
+  { "id": "video", "name": "Video" },
+  { "id": "photos", "name": "Photos" },
+  { "id": "chat", "name": "Chat" },
+  { "id": "blog", "name": "Blog" },
+  { "id": "marketplace", "name": "Marketplace" },
+  { "id": "reviews", "name": "Reviews" }
+]

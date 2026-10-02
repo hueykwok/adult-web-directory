@@ -1,0 +1,18 @@
+{
+  "name": "adult-web-directory",
+  "version": "1.0.0",
+  "description": "A lightweight, open-source directory of adult websites.",
+  "type": "module",
+  "scripts": {
+    "dev": "python -m http.server 8000",
+    "validate-data": "node scripts/validate-data.js",
+    "check-links": "node scripts/check-links.js",
+    "test": "node --test",
+    "verify": "node scripts/validate-data.js && node --test"
+  },
+  "keywords": ["directory", "adult", "open-source", "static"],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { execFileSync, spawnSync } from 'node:child_process';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const rootDir = join(__dirname, '..');
@@ -8,6 +9,43 @@ const rootDir = join(__dirname, '..');
 const CONCURRENCY = 5;
 const TIMEOUT_MS = 10000;
 const MAX_REDIRECTS = 3;
+
+function readGitProxy() {
+  for (const key of ['https.proxy', 'http.proxy']) {
+    try {
+      const out = execFileSync('git', ['config', '--get', key], {
+        cwd: rootDir,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore']
+      }).trim();
+      if (out) return out;
+    } catch { /* not configured */ }
+  }
+  return null;
+}
+
+function applyProxyFromEnvironment() {
+  if (process.env.HTTPS_PROXY || process.env.HTTP_PROXY) return null;
+  const proxy = readGitProxy();
+  if (!proxy) return null;
+  return proxy;
+}
+
+function reexecWithProxy(proxy) {
+  if (process.env.AWD_PROXY_REEXEC === '1') return;
+  const result = spawnSync(process.execPath, process.argv.slice(1), {
+    cwd: rootDir,
+    stdio: 'inherit',
+    env: {
+      ...process.env,
+      HTTPS_PROXY: proxy,
+      HTTP_PROXY: proxy,
+      NODE_USE_ENV_PROXY: '1',
+      AWD_PROXY_REEXEC: '1'
+    }
+  });
+  process.exit(result.status === null ? 1 : result.status);
+}
 
 const PRIVATE_IP_PATTERNS = [
   /^127\./,
@@ -135,6 +173,8 @@ function classifyStatus(result) {
 }
 
 async function main() {
+  const proxy = applyProxyFromEnvironment();
+  if (proxy) reexecWithProxy(proxy);
   const sitesPath = join(rootDir, 'data/sites.json');
   const reportDir = join(rootDir, 'reports');
 

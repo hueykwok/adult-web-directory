@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -9,8 +9,7 @@ const REQUIRED_FIELDS = ['id', 'name', 'url', 'description', 'category', 'tags',
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
 function fail(message) {
-  console.error(`ERROR: ${message}`);
-  process.exit(1);
+  throw new Error(message);
 }
 
 function loadJson(filePath) {
@@ -22,7 +21,7 @@ function loadJson(filePath) {
   }
 }
 
-function validateSites(sites, categories, tags) {
+export function validateSites(sites, categories, tags) {
   if (!Array.isArray(sites)) {
     fail('sites.json must be an array');
   }
@@ -41,7 +40,7 @@ function validateSites(sites, categories, tags) {
       }
     }
 
-    if (seen.id && seenIds.has(site.id)) {
+    if (seenIds.has(site.id)) {
       fail(`${prefix}: duplicate id "${site.id}"`);
     }
     seenIds.add(site.id);
@@ -87,7 +86,7 @@ function validateSites(sites, categories, tags) {
   });
 }
 
-function validateCategories(categories) {
+export function validateCategories(categories) {
   if (!Array.isArray(categories)) {
     fail('categories.json must be an array');
   }
@@ -107,7 +106,7 @@ function validateCategories(categories) {
   });
 }
 
-function validateTags(tags) {
+export function validateTags(tags) {
   if (!Array.isArray(tags)) {
     fail('tags.json must be an array');
   }
@@ -127,12 +126,27 @@ function validateTags(tags) {
   });
 }
 
-const sites = loadJson(join(rootDir, 'data/sites.json'));
-const categories = loadJson(join(rootDir, 'data/categories.json'));
-const tags = loadJson(join(rootDir, 'data/tags.json'));
+export function runValidation(baseDir = rootDir) {
+  const sites = loadJson(join(baseDir, 'data/sites.json'));
+  const categories = loadJson(join(baseDir, 'data/categories.json'));
+  const tags = loadJson(join(baseDir, 'data/tags.json'));
 
-validateCategories(categories);
-validateTags(tags);
-validateSites(sites, categories, tags);
+  validateCategories(categories);
+  validateTags(tags);
+  validateSites(sites, categories, tags);
 
-console.log(`Validation passed: ${sites.length} sites, ${categories.length} categories, ${tags.length} tags`);
+  return { sites: sites.length, categories: categories.length, tags: tags.length };
+}
+
+const isDirectRun = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+
+if (isDirectRun) {
+  try {
+    const result = runValidation();
+    console.log(`Validation passed: ${result.sites} sites, ${result.categories} categories, ${result.tags} tags`);
+  } catch (err) {
+    console.error(`ERROR: ${err.message}`);
+    process.exit(1);
+  }
+}
+

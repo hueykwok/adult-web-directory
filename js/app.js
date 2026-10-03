@@ -1,6 +1,6 @@
 import { loadSites, loadCategories, loadTags, getCategoryName, getTagName } from './data.js';
 import { searchSites } from './search.js';
-import { filterSites, sortSites, paginate, getTotalPages } from './filters.js';
+import { filterSites, sortSites, paginate, getTotalPages, countBy, definitionsInUse } from './filters.js';
 import { getAgeConfirmed, setAgeConfirmed, getTheme, setTheme, getFavorites, toggleFavorite } from './storage.js';
 import { debounce, escapeHtml, formatDate } from './utils.js';
 
@@ -68,19 +68,23 @@ function handleAgeExit() {
   window.location.href = 'https://www.google.com';
 }
 
+function getCategoriesInUse() {
+  return definitionsInUse(state.categories, state.sites, 'category');
+}
+
 function populateCategories() {
   const allBtn = document.createElement('button');
   allBtn.className = 'category-btn category-btn--active';
-  allBtn.textContent = 'All';
+  allBtn.textContent = `All (${state.sites.length})`;
   allBtn.dataset.category = '';
   allBtn.setAttribute('role', 'tab');
   allBtn.setAttribute('aria-selected', 'true');
   elements.categoryList.appendChild(allBtn);
 
-  state.categories.forEach(cat => {
+  getCategoriesInUse().forEach(cat => {
     const btn = document.createElement('button');
     btn.className = 'category-btn';
-    btn.textContent = cat.name;
+    btn.textContent = `${cat.name} (${cat.count})`;
     btn.dataset.category = cat.id;
     btn.setAttribute('role', 'tab');
     btn.setAttribute('aria-selected', 'false');
@@ -110,10 +114,10 @@ function populateFilterOptions() {
     elements.filterRegion.appendChild(opt);
   });
 
-  state.tags.forEach(tag => {
+  definitionsInUse(state.tags, state.sites, 'tags').forEach(tag => {
     const opt = document.createElement('option');
     opt.value = tag.id;
-    opt.textContent = tag.name;
+    opt.textContent = `${tag.name} (${tag.count})`;
     elements.filterTag.appendChild(opt);
   });
 }
@@ -255,7 +259,10 @@ function loadUrlParams() {
 }
 
 function updateCategoryButtons() {
-  elements.categoryList.querySelectorAll('.category-btn').forEach(btn => {
+  const buttons = elements.categoryList.querySelectorAll('.category-btn');
+  const hasMatch = Array.from(buttons).some(btn => btn.dataset.category === state.category);
+  if (!hasMatch) state.category = '';
+  buttons.forEach(btn => {
     const isActive = btn.dataset.category === state.category;
     btn.classList.toggle('category-btn--active', isActive);
     btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
@@ -415,6 +422,12 @@ async function init() {
   loadUrlParams();
   populateCategories();
   populateFilterOptions();
+
+  if (state.tag && !elements.filterTag.querySelector(`option[value="${state.tag}"]`)) {
+    state.tag = '';
+    elements.filterTag.value = '';
+  }
+
   updateCategoryButtons();
   bindEvents();
   renderResults();

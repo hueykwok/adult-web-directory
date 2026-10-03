@@ -42,3 +42,24 @@ export function paginate(sites, page, perPage = 24) {
 export function getTotalPages(total, perPage = 24) {
   return Math.max(1, Math.ceil(total / perPage));
 }
+
+export function countBy(sites, field) {
+  const counts = new Map();
+  sites.forEach(site => {
+    const value = site[field];
+    if (Array.isArray(value)) {
+      value.forEach(v => counts.set(v, (counts.get(v) || 0) + 1));
+    } else if (value) {
+      counts.set(value, (counts.get(value) || 0) + 1);
+    }
+  });
+  return counts;
+}
+
+export function definitionsInUse(definitions, sites, field) {
+  const counts = countBy(sites, field);
+  return definitions
+    .filter(def => counts.has(def.id))
+    .map(def => ({ ...def, count: counts.get(def.id) }))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+}
